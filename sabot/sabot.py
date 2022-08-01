@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+from pprint import pprint
 from typing import Callable
 
 from slack_bolt import App, Say, BoltContext
@@ -8,12 +9,15 @@ from slack_sdk import WebClient
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
 
-from helpers.elastic_helper import esConnect, esInsert
+from helpers.elastic_helper import esConnect, esInsert, esUpdateTag, listTags, searchMessages, searchMessagesAdvanced, buildAdvancedSearchBlock, esAppSearchConnect, searchDocs
 from helpers.general import unix2ts
 from helpers.discourse import createTopic
+from helpers.slack_helpers import buildTagsForm, buildSecondaryTags, parseCommands, helpCommands, combineBlocks, parseAdvSearchOptions
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG,
+                   format='%(asctime)s:%(levelname)s:%(module)s:%(funcName)s:%(lineno)d:%(message)s'
+                   )
 
 app = App()
 
@@ -33,11 +37,17 @@ es_cloud_pass = os.getenv('sabot_cloud_es_pass')
 logging.info('Calling esConnect')
 es = esConnect(es_cloud_id, es_cloud_user, es_cloud_pass)
 
+# setup elastic App Search connection
+as_url = os.getenv('sabot_appsearch_url')
+as_api = os.getenv('sabot_appsearch_api')
+logging.info('creating App Search Connection')
+appsearch = esAppSearchConnect(as_url, as_api)
+
 
 # Discourse connection info
-dAPI = 'dd7cbb74f9acfa2577518330ef98b471d2c3e1489b6ef6f808cb895fb0d35289'
-dUser= 'jeff'
-dServer = 'https://sa-hivemind.jeffvestal.com'
+discourse_api = os.getenv('discourse_api')
+discourse_user = os.getenv('discourse_user')
+discourse_server = os.getenv('discourse_server')
 
 
 def get_user_info(userid):
@@ -48,6 +58,7 @@ def get_user_info(userid):
 
 
 
+
 @app.command("/hello-socket-mode")
 def hello_command(ack, body,logger: logging.Logger):
     logger.debug('hello')
@@ -55,45 +66,279 @@ def hello_command(ack, body,logger: logging.Logger):
     ack(f"Hi, <@{user_id}>!")
 
 
+
 @app.event("message")
 def handle_message_events(body, logger):
+    logger.debug('Processing event - message')
     logger.info(body)
 
 
 @app.event("app_mention")
-def event_test(say,logger: logging.Logger):
-    print('app_mention')
-    say("Hi there!")
-
-
-@app.event("reaction_added")
-def store_useful_info(event, say, context: BoltContext, client: WebClient, logger: logging.Logger):
-    logger.debug(event)
-
-    #say('I see a reaction')
-    #logger.debug('type: %s' % event['type'])
-    #logger.debug('user: %s' % event['user'])
-    #logger.debug('reaction: %s' % event['reaction'])
-    #logger.debug('type.channel: %s' % event['item']['channel'])
-    #logger.debug('type.ts: %s' % event['item']['ts'])
-    #logger.debug('context: %s' % context)
-
+def event_test(say, client, ack, respond, payload, logger: logging.Logger):
+    logger.info('processing app_mention')
+    ack()
+    logger.debug(payload)
 
     # Send back reaction to ack
     client.reactions_add(
+        name="bob-dark",
+        channel=payload['channel'],
+        timestamp=payload['ts']
+    )
+
+    # process the command
+    logging.debug('sending payload to parse for command %s' % payload)
+    command, rest = parseCommands(payload)
+
+    logging.info('command %s' % command)
+    logging.info('rest %s' % rest)
+    
+    if command == 'help':
+        text = helpCommands()
+
+    elif command == 'listtags':
+        #maybe also for list ?
+        text = listTags(es)
+
+    elif command == 'search':
+        if rest == [] or rest == ['advanced']:
+             text = buildAdvancedSearchBlock()
+        else:
+            text = searchMessages(payload, es)
+
+    elif command == 'docs':
+        logging.info('Calling searchDocs')
+        text = searchDocs(payload, rest, appsearch)
+
+    else:
+        text = '''I don't recognize that command, below is the commands I know:\n\n%s''' % helpCommands()
+    
+    slack_user_id = payload["user"]
+#    say(text)
+#    say(text=text, 
+    say(text='test', 
+       blocks = text
+
+       )
+    
+    #client.chat_postEphemeral(
+    #    channel=payload["channel"],
+    #    user=slack_user_id,
+    #    text=f"Howdy <@{slack_user_id}> Only you should be able to see this..."
+    #)
+
+
+@app.action("no_results_followup")
+def handle_no_results_followup(ack, body, say, payload, logger):
+    '''
+    When there are no results found, send back the advanced search box
+    '''
+    ack()
+    logger.info('starting no_results_followup')
+    logger.info(body)
+
+    text = searchMessagesAdvanced(body, es)
+
+    logging.debug('sending back %s' % text)
+    
+    say(text='test', 
+       blocks = text
+       )
+
+
+@app.action("advanced_search_enable")
+def handle_advanced_search_enable(ack, body, say, logger):
+    '''
+    send back advanced search box 
+    '''
+    #TODO is this still used?
+    ack()
+    logging.info('starting advanced_search_enable')
+    logger.debug(body)
+
+    advSearchBox = buildAdvancedSearchBlock()
+
+    say(text='test', 
+       blocks = advSearchBox
+       )
+
+@app.action("advanced_submit")
+def handle_advanced_submit(ack, body, say, logger):
+    '''
+    Handle advanced search query
+    '''
+    ack()
+    logger.info('Starting advanced_submit')
+    logger.info(body)
+
+    slackSearch, docsSearch = parseAdvSearchOptions(body)
+
+    results = {
+        'slack' : {
+            'title' : 'Saved Message Search Results',
+            'terms' : slackSearch,
+            'results' : False,
+            #'blocks' : False
+        },
+            'docs' : {
+            'title' : 'Elastic Docs Search Results',
+            'terms' : docsSearch,
+            'results' : False,
+            #'blocks' : False
+        }
+    }
+
+    #TODO possibly have a flag to pull back only the results?
+    if slackSearch:
+        results['slack']['results'] = searchMessages(es=es, searchTermRebuilt=slackSearch )
+    if docsSearch:
+        results['docs']['results'] = searchDocs(appSearch=appsearch, query = docsSearch)
+
+    logging.info('calling combineBlocks')
+    logging.debug(results)
+    resultsBlock = combineBlocks(results)
+    logging.debug('done with combining results')
+    logging.debug(resultsBlock)
+
+    say(text='test', 
+        blocks = resultsBlock
+        )
+
+    
+# handle secondard form clicks
+@app.action("checkboxes-action")
+def handle_checkboxes(ack, body, logger):
+    ack()
+    logger.info('Handling checkboxes-action')
+    logger.info(body)
+
+
+# handle secondary form submit
+
+@app.action("sub-tags_submit")
+def handle_sub_tags(ack, body, respond, logger):
+    logger.info('Handling sub-tags_submit')
+    logger.info(body)
+    
+    ack()
+    
+    # Delete second level tag form
+    respond( response_type= 'ephemeral',
+        text= 'Thanks for helping tag this content!',
+        replace_original = True,
+        delete_original = True
+    )
+
+
+    sub_tags = []
+    for selection in body['state']['values']['check_box']['checkboxes-action']['selected_options']:
+        sub_tags.append(selection['value'])
+
+    ori_ts = body['actions'][0]['value']
+
+    logging.debug('sub tags: %s' % sub_tags)
+    
+    # Update tag in es
+    logger.info('Calling esUpdateTag')
+    esUpdateTag(es, sub_tags, ori_ts, sub=True)
+
+
+# Top Level catagories form response
+@app.action("top_level_tags")
+def handle_some_action(ack, body, say, client, respond, logger):
+    logger.info('top_level_tags action received')
+    logger.info(body)
+    pprint(body)
+
+    ack()
+
+    # Delete top level tag form
+    respond( response_type= 'ephemeral',
+    text= '',
+    replace_original = True,
+    delete_original = True
+    )
+
+    
+    ori_ts = float(body['actions'][0]['block_id'])
+    cat_selected = body['actions'][0]['selected_option']['value']
+#    cat_selected = body['actions'][0]['selected_option']['text']['text']
+    tags_channel = body['channel']['id']
+    tags_user = body['user']['id']
+    
+    
+#    client.chat_postEphemeral(
+#        channel=tags_channel,
+#        user=tags_user,
+#        text=':bob: Copy That -> category _%s_ selected for original message with ts of _%s_' % (cat_selected, ori_ts)
+#    )
+
+   
+    # Update tag in es
+    logger.info('Calling esUpdateTag')
+    esUpdateTag(es, cat_selected, ori_ts)
+
+    
+    # Send secondary tag form
+    secondTagForm = buildSecondaryTags(cat_selected, ori_ts)
+    if secondTagForm:
+        client.chat_postEphemeral(
+            channel=tags_channel,
+            user=tags_user,
+            text=f"<@{tags_user}> One more question to help organize this info...",
+            blocks = secondTagForm
+        )
+    else:
+        client.chat_postEphemeral(
+            channel=tags_channel,
+            user=tags_user,
+            text=f"Thanks for saving the content. We will review and see if we need a new tag selection!"
+        )
+
+
+
+
+
+@app.event("reaction_added")
+def store_useful_info(event, payload, say, context: BoltContext, client: WebClient, logger: logging.Logger):
+    logger.info('Processing event - reaction_added')
+    logger.debug(event)
+
+    # Only want to trigger on specific reaction
+    if event['reaction'] != 'sa-save':
+        logger.debug('skipping reaction: %s' % event['reaction'])
+        return
+
+
+    # message ts to save / workwith
+    ori_msg_ts = event['item']['ts']
+    msg_channel = event['item']['channel']
+    
+    # Send back reaction to ack
+    client.reactions_add(
         #name="wave",
-        name="white_check_mark",
+        name="bob-dark",
         channel=event['item']['channel'],
         timestamp=event['item']['ts']
     )
+
+    # Get user to catagorize the message
+    topics_form = buildTagsForm(ori_msg_ts)
+    slack_user_id = payload["user"]
+
+    client.chat_postEphemeral(
+        channel=msg_channel,
+        user=slack_user_id,
+        text=f"Howdy <@{slack_user_id}> Help others find this content in the future...",
+        blocks = topics_form
+    )
+
 
     ## Find original message
     # ID of channel that the message exists in
     conversation_id = event['item']['channel']
 
     try:
-        # Call the conversations.history method using the WebClient
-        # The client passes the token you included in initialization
         result = client.conversations_history(
             channel=conversation_id,
             inclusive=True,
@@ -104,7 +349,8 @@ def store_useful_info(event, say, context: BoltContext, client: WebClient, logge
         message = result["messages"][0]
         logger.debug(message)
 
-
+        
+        
         # Build payload to sent to elastic
         payload = {
             'reaction' : {
@@ -116,7 +362,8 @@ def store_useful_info(event, say, context: BoltContext, client: WebClient, logge
                 'message_ts' : event['item']['ts'],
                 'channel' : event['item']['channel'],
             'author': message['user'],
-            'message' : message['text']
+            'message' : message['text'],
+            'tags' : {}
             }
 
         pl_resp = app.client.chat_getPermalink(
@@ -139,11 +386,11 @@ def store_useful_info(event, say, context: BoltContext, client: WebClient, logge
         elif 'error' in pl_resp:
             logging.error('Unable to get message permalink - %s' % pl_resp['error'])
 
-
-        # Convert unix timestamps to datetime for es
+        #TODO this no longer needs to be broken out
         try:
-            payload['message_timestamp'] = unix2ts(event['item']['ts'])
-            payload['reaction_ts'] = unix2ts(event['event_ts'])
+            payload['message_timestamp'] = event['item']['ts']
+            payload['message_ts'] = int(float(event['item']['ts']))
+            payload['reaction_ts'] = int(float(event['event_ts']))
 
         except Exception as e:
             logging.error('error converting ts timestamp - %s' % e)
@@ -165,10 +412,8 @@ def store_useful_info(event, say, context: BoltContext, client: WebClient, logge
                     }
                 )
 
-
-        logging.debug('payload built - %s' % payload)
-        resp = esInsert(es, payload)
-
+                
+        ### TODO maybe break out to a function?
         # post to discourse
         logging.debug('payload - %s' % payload)
         dpayload ={
@@ -176,21 +421,46 @@ def store_useful_info(event, say, context: BoltContext, client: WebClient, logge
                 'raw':payload['message'] + 'From: %s - %s' % (payload['real_name'], payload['slack_link'])
                 }
         logging.debug('DISCOURSE PAYLOAD - %s' % dpayload)
-        createTopic(dpayload, dAPI, dUser, dServer)
+        dResponse = createTopic(dpayload, discourse_api, discourse_user, discourse_server)
+
+
+        # Add discourse info
+        payload['discourse'] = {
+            'id' : dResponse['id'],
+            'slug' : dResponse['topic_slug']
+        }
+        
+        # index doc in es
+        logging.debug('payload built - %s' % payload)
+        resp = esInsert(es, payload)
+
+
+        
+
+        ## Respond to slack with url for Discourse post
+        #try:
+        #    postURL = '%s/t/%s' % (discourse_server,dResponse['topic_slug'])
+        #    client.chat_postEphemeral(
+        #        channel=msg_channel,
+        #        user=slack_user_id,
+        #        text="Your post has been saved to Discourse - %s" % postURL
+        #    )
+        #except KeyError as e:
+        #    logging.error('Error getting Discourse url - %s' % e)
+        #    pass
+        #    #todo return that there was an error posting 
+
 
     except SlackApiError as e:
         print(f"Error: {e}")
 	#TODO send back sad failed reaction or something
 
-    #TODO reply with some emojie and maybe ask to tag the message
-
-
-#def sendToElastic(es, slack
 
 
 
 ## download file/screenshot attachments
 # message[files] =[ {'url_private_download': 'https://files.slack.com/files-pri/T03P97LMYGY-F03NB53GKJB/download/blue_duck.png', {}...] }
+
 
 
 

@@ -32,13 +32,15 @@ def createTopic(payload, apiKey, apiUsername, server):
             'category' : 5
             }
 
+#tags
+    
     logging.debug('params - %s' % params)
 
     url = server + '/posts'
 
     resp = requests.post(url=url, headers=headers, params=params)
 
-    print(resp)
+    logging.info('createTopic finished: %s' % resp)
     pprint(resp.json())
     return resp.json()
 
