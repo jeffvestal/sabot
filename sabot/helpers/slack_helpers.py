@@ -339,17 +339,111 @@ def helpCommands():
     list of commands the bot understands
     '''
 
-    help = '''
-    I knows how to do the following:
-    Format is `@sabot <command> [optional inputs]`
+    #help = '''
+    #I knows how to do the following:
+    #Format is `@sabot <command> [optional inputs]`
 
-    `help` --> You are reading it now
-    `listtags` --> List the tags that have been added to messages
-    `search` [search terms] --> search for [search terms]. leave blank for adv search form
+    #`help` --> You are reading it now
+    #`listtags` --> List the tags that have been added to messages
+    #`search` [search terms] --> search for [search terms]. leave blank for adv search form
     
-    -> More to come!
-    -> Any issues reach out to `@vestal` 
-    '''
+    #-> More to come!
+    #-> Any issues reach out to `@vestal` 
+    #'''
+
+    help =  [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Hi There!, I know how to do the following:",
+				"emoji": True
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Saving Slack Messages",
+				"emoji": True
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "When you see a message in Slack you think is useful, helpful, or worth saving\nfor easy retrieval in the future:\nTag any message with the :sa-save: reaction"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "You will get sent back a message asking for your help tagging the message, to make it easier to find in the future"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Commands I understand",
+				"emoji": True
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`help` - You are reding this now"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`search [search terms]` - Search for previously saved Slack Messages"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`docs [search terms]` - Search Elastic Docs"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`search advanced` - Bring up the advanced search form"
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`listtags` - List tags of previously saved Slack messages"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "context",
+			"elements": [
+				{
+					"type": "mrkdwn",
+					"text": "Any issues/request reach out to `@vestal`"
+				}
+			]
+		}
+	]
 
     return help
 
