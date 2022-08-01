@@ -364,19 +364,29 @@ def buildAdvancedSearchBlock(addNoResults=False):
                     },
                     "value": "search_slack"
                 }],
-                "options": [{
+                "options": [
+                    {
                     "text": {
                         "type": "mrkdwn",
                         "text": "Search saved slack messages"
                     },
                     "value": "search_slack"
-                }, {
+                }, 
+                    {
                     "text": {
                         "type": "mrkdwn",
                         "text": "Search elastic.co docs"
                     },
                     "value": "search_docs"
-                }],
+                },
+                                        {
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Search elastic.co Blogs"
+                    },
+                    "value": "search_blogs"
+                }
+                           ],
                 "action_id":
                 "checkboxes-action"
             }
@@ -446,6 +456,56 @@ def buildDocsBlock(resp):
     }]
 
     return docsResults
+
+
+
+def buildBlogsBlock(resp):
+    '''
+    build out docs results 
+    '''
+
+    logging.info('starting buildBlogsBlock')
+    logging.debug(resp)
+
+    docs = ''
+    for d in resp:
+        docs = docs + '<%s|%s>\n' % (d['url']['raw'], d['title']['raw'])
+
+    docsResults = [{
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "These are the top results I found from Elastic Blogs"
+        }
+    }, {
+        "type": "divider"
+    }, {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": docs
+        }
+    }, {
+        "type": "divider"
+    }, {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "Need more results or try something else:"
+        },
+        "accessory": {
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": "Advanced Search"
+            },
+            "value": "advanced_search_enable",
+            "action_id": "advanced_search_enable"
+        }
+    }]
+
+    return docsResults
+
 
 
 def searchMessages(payload=False, es=False, searchTermRebuilt=False, index='sa_til-01'):
@@ -548,8 +608,53 @@ def searchDocs(payload=False, rest=False, appSearch=False, query=False):
         query = ' '.join(rest)
     
     resp = appSearch.search(engine_name="elastic-guide-docs",
-                            body={"query": query })
+                                body={"query": query,
+                                      "result_fields": {
+                                        "title": {
+                                            "raw": {}
+                                        },
+                                        "url": {
+                                            "raw": {}
+                                        }
+                                     }
+                                     }
+                            )
 
+    results = buildDocsBlock(resp['results'])
+
+    logging.debug(results)
+
+    return results
+
+
+def searchBlogs(payload=False, rest=False, appSearch=False, query=False):
+    '''
+    Search elastic.co docs
+    '''
+
+    logging.info('starting searchBlogs')
+
+    if query:
+        logging.info('query provided')
+    else:
+        logging.debug(payload)
+        logging.debug(rest)
+        query = ' '.join(rest)
+    # result_fields
+    resp = appSearch.search(engine_name="elastic-guide-docs",
+                                body={"query": query,
+                                      "result_fields": {
+                                        "title": {
+                                            "raw": {}
+                                        },
+                                        "url": {
+                                            "raw": {}
+                                        }
+                                     }
+                                     }
+                            )
+
+    #TODO split out to separate blocks builder - maybe
     results = buildDocsBlock(resp['results'])
 
     logging.debug(results)

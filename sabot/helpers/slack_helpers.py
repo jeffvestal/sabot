@@ -511,8 +511,9 @@ def parseAdvSearchOptions(body):
     #TODO There is a cleaner way to do this block if we get more options...    
     search_slack = searchText if 'search_slack' in checkBox else False
     search_docs = searchText if 'search_docs' in checkBox else False
+    search_blogs = searchText if 'search_blogs' in checkBox else False
 
-    return (search_slack, search_docs)
+    return (search_slack, search_docs, search_blogs)
 
 
 def combineBlocks(results):

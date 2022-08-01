@@ -9,7 +9,7 @@ from slack_sdk import WebClient
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
 
-from helpers.elastic_helper import esConnect, esInsert, esUpdateTag, listTags, searchMessages, searchMessagesAdvanced, buildAdvancedSearchBlock, esAppSearchConnect, searchDocs
+from helpers.elastic_helper import esConnect, esInsert, esUpdateTag, listTags, searchMessages, searchMessagesAdvanced, buildAdvancedSearchBlock, esAppSearchConnect, searchDocs, searchBlogs
 from helpers.general import unix2ts
 from helpers.discourse import createTopic
 from helpers.slack_helpers import buildTagsForm, buildSecondaryTags, parseCommands, helpCommands, combineBlocks, parseAdvSearchOptions
@@ -110,6 +110,10 @@ def event_test(say, client, ack, respond, payload, logger: logging.Logger):
         logging.info('Calling searchDocs')
         text = searchDocs(payload, rest, appsearch)
 
+    elif command == 'blogs':
+        logging.info('Calling searchBlogs')
+        text = searchBlogs(payload, rest, appsearch)
+
     else:
         text = '''I don't recognize that command, below is the commands I know:\n\n%s''' % helpCommands()
     
@@ -171,7 +175,7 @@ def handle_advanced_submit(ack, body, say, logger):
     logger.info('Starting advanced_submit')
     logger.info(body)
 
-    slackSearch, docsSearch = parseAdvSearchOptions(body)
+    slackSearch, docsSearch, blogsSearch  = parseAdvSearchOptions(body)
 
     results = {
         'slack' : {
@@ -185,14 +189,25 @@ def handle_advanced_submit(ack, body, say, logger):
             'terms' : docsSearch,
             'results' : False,
             #'blocks' : False
+        },
+            'docs' : {
+            'title' : 'Elastic Blogs Search Results',
+            'terms' : blogsSearch,
+            'results' : False,
+            #'blocks' : False
         }
     }
 
     #TODO possibly have a flag to pull back only the results?
+    logging.debug('Advanced Results:')
+    logging.debug(results)
     if slackSearch:
         results['slack']['results'] = searchMessages(es=es, searchTermRebuilt=slackSearch )
     if docsSearch:
         results['docs']['results'] = searchDocs(appSearch=appsearch, query = docsSearch)
+    if blogsSearch:
+        results['docs']['results'] = searchBlogs(appSearch=appsearch, query = docsSearch)
+
 
     logging.info('calling combineBlocks')
     logging.debug(results)
