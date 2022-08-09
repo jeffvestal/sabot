@@ -439,7 +439,7 @@ def helpCommands():
 			"elements": [
 				{
 					"type": "mrkdwn",
-					"text": "Any issues/request reach out to `@vestal`"
+					"text": "Any issues/request reach out to `@vestal` or <https://github.com/jeffvestal/sabot/issues|open a GH Issue>"
 				}
 			]
 		}

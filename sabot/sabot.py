@@ -4,6 +4,10 @@ import logging
 from pprint import pprint
 from typing import Callable
 
+import elasticapm
+
+
+
 from slack_bolt import App, Say, BoltContext
 from slack_sdk import WebClient
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -19,13 +23,31 @@ logging.basicConfig(level=logging.DEBUG,
                    format='%(asctime)s:%(levelname)s:%(module)s:%(funcName)s:%(lineno)d:%(message)s'
                    )
 
+# apm
+logging.info('Creating Elastic APM client')
+apmService = os.getenv("ELASTIC_APM_SERVICE_NAME")
+apmHost = os.getenv("ELASTIC_APM_SERVER_URL")
+apmSecret = os.getenv("ELASTIC_APM_SECRET_TOKEN")
+
+apmClient = elasticapm.Client(service_name=apmService, server_url=apmHost, secret_token=apmSecret, environment='development')
+logging.info('APM client created')
+elasticapm.instrument()
+#apm_logger = logging.getLogger("elasticapm")
+#apm_logger.setLevel(logging.DEBUG)
+
+
+
 app = App()
 
-
+@elasticapm.capture_span()
 @app.middleware
 def log_request(logger: logging.Logger, body: dict, next: Callable):
+        logger.info('Starting log_request')
         logger.debug(body)
+    
+        apmClient.begin_transaction(transaction_type="log_request")
         return next()
+        apmClient.end_transaction(name=__name__, result="success")
 
 # Install the Slack app and get xoxb- token in advance
 app = App(token=os.environ["SLACK_BOT_TOKEN"])
@@ -66,15 +88,17 @@ def hello_command(ack, body,logger: logging.Logger):
     ack(f"Hi, <@{user_id}>!")
 
 
-
+@elasticapm.capture_span()
 @app.event("message")
 def handle_message_events(body, logger):
     logger.debug('Processing event - message')
     logger.info(body)
 
-
+@elasticapm.capture_span()
 @app.event("app_mention")
-def event_test(say, client, ack, respond, payload, logger: logging.Logger):
+def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
+
+    apmClient.begin_transaction(transaction_type="app_mention")
     logger.info('processing app_mention')
     ack()
     logger.debug(payload)
@@ -124,6 +148,8 @@ def event_test(say, client, ack, respond, payload, logger: logging.Logger):
        blocks = text
 
        )
+
+    apmClient.end_transaction(name=__name__, result="success")
     
     #client.chat_postEphemeral(
     #    channel=payload["channel"],
@@ -132,11 +158,14 @@ def event_test(say, client, ack, respond, payload, logger: logging.Logger):
     #)
 
 
+@elasticapm.capture_span()
 @app.action("no_results_followup")
 def handle_no_results_followup(ack, body, say, payload, logger):
     '''
     When there are no results found, send back the advanced search box
     '''
+    apmClient.begin_transaction(transaction_type="handle_no_results_followup")
+
     ack()
     logger.info('starting no_results_followup')
     logger.info(body)
@@ -148,8 +177,12 @@ def handle_no_results_followup(ack, body, say, payload, logger):
     say(text='test', 
        blocks = text
        )
+    
+    apmClient.end_transaction(name=__name__, result="success")
 
 
+
+@elasticapm.capture_span()
 @app.action("advanced_search_enable")
 def handle_advanced_search_enable(ack, body, say, logger):
     '''
@@ -166,11 +199,14 @@ def handle_advanced_search_enable(ack, body, say, logger):
        blocks = advSearchBox
        )
 
+@elasticapm.capture_span()
 @app.action("advanced_submit")
 def handle_advanced_submit(ack, body, say, logger):
     '''
     Handle advanced search query
     '''
+    apmClient.begin_transaction(transaction_type="advanced_sumbit")
+
     ack()
     logger.info('Starting advanced_submit')
     logger.info(body)
@@ -219,19 +255,30 @@ def handle_advanced_submit(ack, body, say, logger):
         blocks = resultsBlock
         )
 
+    apmClient.end_transaction(name=__name__, result="success")
+
     
 # handle secondard form clicks
+@elasticapm.capture_span()
 @app.action("checkboxes-action")
 def handle_checkboxes(ack, body, logger):
+
+    apmClient.begin_transaction(transaction_type="handle_checkboxes")
+
     ack()
     logger.info('Handling checkboxes-action')
     logger.info(body)
 
+    apmClient.end_transaction(name=__name__, result="success")
+
 
 # handle secondary form submit
-
+@elasticapm.capture_span()
 @app.action("sub-tags_submit")
 def handle_sub_tags(ack, body, respond, logger):
+
+    apmClient.begin_transaction(transaction_type="handle_sub_tags")
+
     logger.info('Handling sub-tags_submit')
     logger.info(body)
     
@@ -257,10 +304,17 @@ def handle_sub_tags(ack, body, respond, logger):
     logger.info('Calling esUpdateTag')
     esUpdateTag(es, sub_tags, ori_ts, sub=True)
 
+    apmClient.end_transaction(name=__name__, result="success")
+
 
 # Top Level catagories form response
+@elasticapm.capture_span()
 @app.action("top_level_tags")
-def handle_some_action(ack, body, say, client, respond, logger):
+def handle_top_level_tags(ack, body, say, client, respond, logger):
+
+    apmClient.begin_transaction(transaction_type="handle_top_level_tags")
+
+    
     logger.info('top_level_tags action received')
     logger.info(body)
     pprint(body)
@@ -311,11 +365,15 @@ def handle_some_action(ack, body, say, client, respond, logger):
         )
 
 
+    apmClient.end_transaction(name=__name__, result="success")
 
 
-
+@elasticapm.capture_span()
 @app.event("reaction_added")
 def store_useful_info(event, payload, say, context: BoltContext, client: WebClient, logger: logging.Logger):
+
+    apmClient.begin_transaction(transaction_type="store_useful_info")
+
     logger.info('Processing event - reaction_added')
     logger.debug(event)
 
@@ -465,9 +523,13 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
         #    pass
         #    #todo return that there was an error posting 
 
+        apmClient.end_transaction(name=__name__, result="success")
+
 
     except SlackApiError as e:
         print(f"Error: {e}")
+        apmClient.end_transaction(name=__name__, result="failure")
+
 	#TODO send back sad failed reaction or something
 
 
