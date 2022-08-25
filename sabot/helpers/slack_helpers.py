@@ -144,7 +144,7 @@ def buildSecondaryTags(topTag, ts):
             }]
         }]
         return o11y_sub_tags
-        
+
     elif topTag == 'security':
         security_sub_tags = [{
             "type": "header",
@@ -202,7 +202,7 @@ def buildSecondaryTags(topTag, ts):
             }]
         }]
         return security_sub_tags
-        
+
     elif topTag == 'search':
         search_sub_tags = [{
             "type": "header",
@@ -346,9 +346,9 @@ def helpCommands():
     #`help` --> You are reading it now
     #`listtags` --> List the tags that have been added to messages
     #`search` [search terms] --> search for [search terms]. leave blank for adv search form
-    
+
     #-> More to come!
-    #-> Any issues reach out to `@vestal` 
+    #-> Any issues reach out to `@vestal`
     #'''
 
     help =  [
@@ -424,13 +424,13 @@ def helpCommands():
 				"text": "`search advanced` - Bring up the advanced search form"
 			}
 		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "`listtags` - List tags of previously saved Slack messages"
-			}
-		},
+#	{
+#			"type": "section",
+#			"text": {
+#				"type": "mrkdwn",
+#				"text": "`listtags` - List tags of previously saved Slack messages"
+#			}
+#		},
 		{
 			"type": "divider"
 		},
@@ -449,7 +449,7 @@ def helpCommands():
 
 def advancedHelp():
 
-    
+
     advBox = [
 		{
 			"type": "section",
@@ -501,14 +501,14 @@ def parseAdvSearchOptions(body):
     '''
 
     logging.debug(body)
-    
+
     searchText = body['state']['values']['text_input']['plain_text_input-action']['value']
     checkBox = [option['value'] for option in body['state']['values']['search_selections']['checkboxes-action']['selected_options']]
     logging.debug('searchText - %s' % searchText)
     logging.debug('checkBox - %s' % checkBox)
 
-    
-    #TODO There is a cleaner way to do this block if we get more options...    
+
+    #TODO There is a cleaner way to do this block if we get more options...
     search_slack = searchText if 'search_slack' in checkBox else False
     search_docs = searchText if 'search_docs' in checkBox else False
     search_blogs = searchText if 'search_blogs' in checkBox else False

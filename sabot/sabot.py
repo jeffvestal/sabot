@@ -29,7 +29,7 @@ apmService = os.getenv("ELASTIC_APM_SERVICE_NAME")
 apmHost = os.getenv("ELASTIC_APM_SERVER_URL")
 apmSecret = os.getenv("ELASTIC_APM_SECRET_TOKEN")
 
-apmClient = elasticapm.Client(service_name=apmService, server_url=apmHost, secret_token=apmSecret, environment='development')
+apmClient = elasticapm.Client(service_name=apmService, server_url=apmHost, secret_token=apmSecret, environment='production')
 logging.info('APM client created')
 elasticapm.instrument()
 #apm_logger = logging.getLogger("elasticapm")
@@ -44,7 +44,7 @@ app = App()
 def log_request(logger: logging.Logger, body: dict, next: Callable):
         logger.info('Starting log_request')
         logger.debug(body)
-    
+
         apmClient.begin_transaction(transaction_type="log_request")
         return next()
         apmClient.end_transaction(name=__name__, result="success")
@@ -105,7 +105,7 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
 
     # Send back reaction to ack
     client.reactions_add(
-        name="bob-dark",
+        name="sabot",
         channel=payload['channel'],
         timestamp=payload['ts']
     )
@@ -116,7 +116,7 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
 
     logging.info('command %s' % command)
     logging.info('rest %s' % rest)
-    
+
     if command == 'help':
         text = helpCommands()
 
@@ -140,17 +140,17 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
 
     else:
         text = '''I don't recognize that command, below is the commands I know:\n\n%s''' % helpCommands()
-    
+
     slack_user_id = payload["user"]
 #    say(text)
-#    say(text=text, 
-    say(text='test', 
+#    say(text=text,
+    say(text='test',
        blocks = text
 
        )
 
     apmClient.end_transaction(name=__name__, result="success")
-    
+
     #client.chat_postEphemeral(
     #    channel=payload["channel"],
     #    user=slack_user_id,
@@ -173,11 +173,11 @@ def handle_no_results_followup(ack, body, say, payload, logger):
     text = searchMessagesAdvanced(body, es)
 
     logging.debug('sending back %s' % text)
-    
-    say(text='test', 
+
+    say(text='test',
        blocks = text
        )
-    
+
     apmClient.end_transaction(name=__name__, result="success")
 
 
@@ -186,7 +186,7 @@ def handle_no_results_followup(ack, body, say, payload, logger):
 @app.action("advanced_search_enable")
 def handle_advanced_search_enable(ack, body, say, logger):
     '''
-    send back advanced search box 
+    send back advanced search box
     '''
     #TODO is this still used?
     ack()
@@ -195,7 +195,7 @@ def handle_advanced_search_enable(ack, body, say, logger):
 
     advSearchBox = buildAdvancedSearchBlock()
 
-    say(text='test', 
+    say(text='test',
        blocks = advSearchBox
        )
 
@@ -251,13 +251,13 @@ def handle_advanced_submit(ack, body, say, logger):
     logging.debug('done with combining results')
     logging.debug(resultsBlock)
 
-    say(text='test', 
+    say(text='test',
         blocks = resultsBlock
         )
 
     apmClient.end_transaction(name=__name__, result="success")
 
-    
+
 # handle secondard form clicks
 @elasticapm.capture_span()
 @app.action("checkboxes-action")
@@ -281,9 +281,9 @@ def handle_sub_tags(ack, body, respond, logger):
 
     logger.info('Handling sub-tags_submit')
     logger.info(body)
-    
+
     ack()
-    
+
     # Delete second level tag form
     respond( response_type= 'ephemeral',
         text= 'Thanks for helping tag this content!',
@@ -299,7 +299,7 @@ def handle_sub_tags(ack, body, respond, logger):
     ori_ts = body['actions'][0]['value']
 
     logging.debug('sub tags: %s' % sub_tags)
-    
+
     # Update tag in es
     logger.info('Calling esUpdateTag')
     esUpdateTag(es, sub_tags, ori_ts, sub=True)
@@ -314,7 +314,7 @@ def handle_top_level_tags(ack, body, say, client, respond, logger):
 
     apmClient.begin_transaction(transaction_type="handle_top_level_tags")
 
-    
+
     logger.info('top_level_tags action received')
     logger.info(body)
     pprint(body)
@@ -328,26 +328,26 @@ def handle_top_level_tags(ack, body, say, client, respond, logger):
     delete_original = True
     )
 
-    
+
     ori_ts = float(body['actions'][0]['block_id'])
     cat_selected = body['actions'][0]['selected_option']['value']
 #    cat_selected = body['actions'][0]['selected_option']['text']['text']
     tags_channel = body['channel']['id']
     tags_user = body['user']['id']
-    
-    
+
+
 #    client.chat_postEphemeral(
 #        channel=tags_channel,
 #        user=tags_user,
 #        text=':bob: Copy That -> category _%s_ selected for original message with ts of _%s_' % (cat_selected, ori_ts)
 #    )
 
-   
+
     # Update tag in es
     logger.info('Calling esUpdateTag')
     esUpdateTag(es, cat_selected, ori_ts)
 
-    
+
     # Send secondary tag form
     secondTagForm = buildSecondaryTags(cat_selected, ori_ts)
     if secondTagForm:
@@ -378,7 +378,8 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
     logger.debug(event)
 
     # Only want to trigger on specific reaction
-    if event['reaction'] != 'sa-save':
+    #if event['reaction'] != 'sa-save':
+    if event['reaction'] != 'sabot':
         logger.debug('skipping reaction: %s' % event['reaction'])
         return
 
@@ -386,11 +387,12 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
     # message ts to save / workwith
     ori_msg_ts = event['item']['ts']
     msg_channel = event['item']['channel']
-    
+
     # Send back reaction to ack
     client.reactions_add(
         #name="wave",
-        name="bob-dark",
+        #name="bob-dark",
+        name="sabot",
         channel=event['item']['channel'],
         timestamp=event['item']['ts']
     )
@@ -422,8 +424,8 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
         message = result["messages"][0]
         logger.debug(message)
 
-        
-        
+
+
         # Build payload to sent to elastic
         payload = {
             'reaction' : {
@@ -485,7 +487,7 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
                     }
                 )
 
-                
+
         ### TODO maybe break out to a function?
         # post to discourse
         logging.debug('payload - %s' % payload)
@@ -502,13 +504,13 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
             'id' : dResponse['id'],
             'slug' : dResponse['topic_slug']
         }
-        
+
         # index doc in es
         logging.debug('payload built - %s' % payload)
         resp = esInsert(es, payload)
 
 
-        
+
 
         ## Respond to slack with url for Discourse post
         #try:
@@ -521,7 +523,7 @@ def store_useful_info(event, payload, say, context: BoltContext, client: WebClie
         #except KeyError as e:
         #    logging.error('Error getting Discourse url - %s' % e)
         #    pass
-        #    #todo return that there was an error posting 
+        #    #todo return that there was an error posting
 
         apmClient.end_transaction(name=__name__, result="success")
 

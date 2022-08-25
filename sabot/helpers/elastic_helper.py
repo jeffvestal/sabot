@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch, helpers
 from elastic_enterprise_search import AppSearch
 
- 
+
 
 # Now call API methods
 #app_search.search(...)
@@ -103,7 +103,7 @@ def esUpdateTag(es, tag, ts, index='sa_til-01', sub=False):
 
 def esUpdateDiscourseInfo(es, d_id, slug, ts, index='sa_til-01'):
     '''
-    add the id and post slug (path) to es 
+    add the id and post slug (path) to es
     id can be later used to update the discourse post
     '''
     update = {
@@ -121,7 +121,7 @@ def esUpdateDiscourseInfo(es, d_id, slug, ts, index='sa_til-01'):
             """
                 ctx._source.discourse = [:];
                 ctx._source.discourse.id = %s;
-                ctx._source.discourse.slug = "%s" 
+                ctx._source.discourse.slug = "%s"
             """ % (d_id, slug),
             "lang":
             "painless"
@@ -373,7 +373,7 @@ def buildAdvancedSearchBlock(addNoResults=False):
                         "text": "Search saved slack messages"
                     },
                     "value": "search_slack"
-                }, 
+                },
                     {
                     "text": {
                         "type": "mrkdwn",
@@ -414,7 +414,7 @@ def buildAdvancedSearchBlock(addNoResults=False):
 
 def buildDocsBlock(resp):
     '''
-    build out docs results 
+    build out docs results
     '''
 
     logging.info('starting buildDocsBlock')
@@ -463,7 +463,7 @@ def buildDocsBlock(resp):
 
 def buildBlogsBlock(resp):
     '''
-    build out docs results 
+    build out docs results
     '''
 
     logging.info('starting buildBlogsBlock')
@@ -527,7 +527,7 @@ def searchMessages(payload=False, es=False, searchTermRebuilt=False, index='sa_t
         if searchTermRebuilt.lower().strip() == 'advanced':
             return 'advanced search coming soon'
 
-    
+
     esBody = {
             "size": 5,
             "query": {
@@ -608,7 +608,7 @@ def searchDocs(payload=False, rest=False, appSearch=False, query=False):
         logging.debug(payload)
         logging.debug(rest)
         query = ' '.join(rest)
-    
+
     resp = appSearch.search(engine_name="elastic-guide-docs",
                                 body={"query": query,
                                       "result_fields": {
@@ -643,7 +643,7 @@ def searchBlogs(payload=False, rest=False, appSearch=False, query=False):
         logging.debug(rest)
         query = ' '.join(rest)
     # result_fields
-    resp = appSearch.search(engine_name="elastic-guide-docs",
+    resp = appSearch.search(engine_name="elastic-blogs",
                                 body={"query": query,
                                       "result_fields": {
                                         "title": {
@@ -659,6 +659,7 @@ def searchBlogs(payload=False, rest=False, appSearch=False, query=False):
     #TODO split out to separate blocks builder - maybe
     results = buildDocsBlock(resp['results'])
 
+    logging.debug('searchBlogs results')
     logging.debug(results)
 
     return results
