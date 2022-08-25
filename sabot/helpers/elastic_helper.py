@@ -183,7 +183,7 @@ def buildResultsBlock(urls):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": "Below are the top 5 results I found from saved Slack messages:"
+            "text": "*`These are the top 5 results I found from saved Slack messages`*"
         }
     }, {
         "type": "divider"
@@ -428,7 +428,7 @@ def buildDocsBlock(resp):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": "These are the top results I found from Elastic Docs"
+            "text": "*`These are the top results I found from Elastic Docs`*"
         }
     }, {
         "type": "divider"
@@ -477,7 +477,7 @@ def buildBlogsBlock(resp):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": "These are the top results I found from Elastic Blogs"
+            "text": "*`These are the top results I found from Elastic Blogs`*"
         }
     }, {
         "type": "divider"
@@ -657,7 +657,7 @@ def searchBlogs(payload=False, rest=False, appSearch=False, query=False):
                             )
 
     #TODO split out to separate blocks builder - maybe
-    results = buildDocsBlock(resp['results'])
+    results = buildBlogsBlock(resp['results'])
 
     logging.debug('searchBlogs results')
     logging.debug(results)

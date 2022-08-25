@@ -125,11 +125,18 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
         text = listTags(es)
 
     elif command == 'search':
-        if rest == [] or rest == ['advanced']:
-             text = buildAdvancedSearchBlock()
-        else:
-            text = searchMessages(payload, es)
+        logging.info('searching all sources')
+        text = handle_advanced_submit(ack=ack, body=payload, say=say, logger=logger, quick_search=True)
+        #if rest == [] or rest == ['advanced']:
+        #     text = buildAdvancedSearchBlock()
+        #else:
+        #    text = searchMessages(payload, es)
 
+    elif command == 'slack':
+        logging.info('Calling searchMessages')
+        text = searchMessages(payload, es)
+
+    
     elif command == 'docs':
         logging.info('Calling searchDocs')
         text = searchDocs(payload, rest, appsearch)
@@ -201,33 +208,44 @@ def handle_advanced_search_enable(ack, body, say, logger):
 
 @elasticapm.capture_span()
 @app.action("advanced_submit")
-def handle_advanced_submit(ack, body, say, logger):
+def handle_advanced_submit(ack, body, say, logger, quick_search=False):
     '''
     Handle advanced search query
     '''
     apmClient.begin_transaction(transaction_type="advanced_sumbit")
 
-    ack()
-    logger.info('Starting advanced_submit')
-    logger.info(body)
+    if quick_search:
+        #TODO maybe make this parsing a separate function..
+        logging.info('parsing out search term from payload')
+        logging.debug(body)
+        searchTerms = body['text'].split()[2:]
+        searchTermRebuilt = ' '.join(searchTerms)
 
-    slackSearch, docsSearch, blogsSearch  = parseAdvSearchOptions(body)
+        slackSearch, docsSearch, blogsSearch = searchTermRebuilt, searchTermRebuilt, searchTermRebuilt
 
+    else:
+        ack()
+        logger.info('Starting advanced_submit')
+        logger.info(body)
+    
+        slackSearch, docsSearch, blogsSearch  = parseAdvSearchOptions(body)
+
+    
     results = {
         'slack' : {
-            'title' : 'Saved Message Search Results',
+            'title' : '`Saved Message Search Results`',
             'terms' : slackSearch,
             'results' : False,
             #'blocks' : False
         },
             'docs' : {
-            'title' : 'Elastic Docs Search Results',
+            'title' : '`Elastic Docs Search Results`',
             'terms' : docsSearch,
             'results' : False,
             #'blocks' : False
         },
-            'docs' : {
-            'title' : 'Elastic Blogs Search Results',
+            'blogs' : {
+            'title' : '`Elastic Blogs Search Results`',
             'terms' : blogsSearch,
             'results' : False,
             #'blocks' : False
@@ -242,7 +260,7 @@ def handle_advanced_submit(ack, body, say, logger):
     if docsSearch:
         results['docs']['results'] = searchDocs(appSearch=appsearch, query = docsSearch)
     if blogsSearch:
-        results['docs']['results'] = searchBlogs(appSearch=appsearch, query = docsSearch)
+        results['blogs']['results'] = searchBlogs(appSearch=appsearch, query = blogsSearch)
 
 
     logging.info('calling combineBlocks')
@@ -251,11 +269,15 @@ def handle_advanced_submit(ack, body, say, logger):
     logging.debug('done with combining results')
     logging.debug(resultsBlock)
 
-    say(text='test',
-        blocks = resultsBlock
-        )
-
-    apmClient.end_transaction(name=__name__, result="success")
+    if quick_search:
+        apmClient.end_transaction(name=__name__, result="success")
+        return resultsBlock
+    else:
+        say(text='test',
+            blocks = resultsBlock
+            )
+    
+        apmClient.end_transaction(name=__name__, result="success")
 
 
 # handle secondard form clicks
