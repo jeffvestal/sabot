@@ -407,9 +407,17 @@ def helpCommands():
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "`search [search terms]` - Search for previously saved Slack Messages"
+				"text": "`search [search terms]` - Search previously saved slack messages, docs, and blogs"
 			}
 		},
+   		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`slack [search terms]` - Search for previously saved Slack Messages"
+			}
+		},
+
 		{
 			"type": "section",
 			"text": {
@@ -417,11 +425,18 @@ def helpCommands():
 				"text": "`docs [search terms]` - Search Elastic Docs"
 			}
 		},
+        {
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`blogs [search terms]` - Search Elastic Blogs"
+			}
+		},
 		{
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "`search advanced` - Bring up the advanced search form"
+				"text": "`advanced` - Bring up the advanced search form"
 			}
 		},
 #	{

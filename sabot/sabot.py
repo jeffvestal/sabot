@@ -127,10 +127,10 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
     elif command == 'search':
         logging.info('searching all sources')
         text = handle_advanced_submit(ack=ack, body=payload, say=say, logger=logger, quick_search=True)
-        #if rest == [] or rest == ['advanced']:
-        #     text = buildAdvancedSearchBlock()
-        #else:
-        #    text = searchMessages(payload, es)
+        
+    elif command == 'advanced':
+        logging.info('calling advanced search box')
+        text = buildAdvancedSearchBlock()
 
     elif command == 'slack':
         logging.info('Calling searchMessages')
