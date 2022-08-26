@@ -537,8 +537,13 @@ def combineBlocks(results):
     '''
     combined = []
     logging.debug(results)
+
     for r in results:
-        for block in results[r]['results']:
-            combined.append(block)
+        try:
+            for block in results[r]['results']:
+                combined.append(block)
+        except TypeError:
+            logging.debug('no results for %s' % r)
+            pass
 
     return combined
