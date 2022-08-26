@@ -388,6 +388,25 @@ def helpCommands():
 		{
 			"type": "divider"
 		},
+        {
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "I can search content from:",
+				"emoji": True
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "plain_text",
+				"text": "* Previously saved slack messages\n* Elastic Docs\n* Elastic Blogs",
+				"emoji": True
+			}
+		},
+		{
+			"type": "divider"
+		},
 		{
 			"type": "header",
 			"text": {
