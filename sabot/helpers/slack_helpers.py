@@ -375,7 +375,7 @@ def helpCommands():
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "When you see a message in Slack you think is useful, helpful, or worth saving\nfor easy retrieval in the future:\nTag any message with the :sa-save: reaction"
+				"text": "When you see a message in Slack you think is useful, helpful, or worth saving\nfor easy retrieval in the future:\nTag any message with the :sabot: `:sabot:` reaction"
 			}
 		},
 		{
