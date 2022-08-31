@@ -30,7 +30,39 @@ Maybe some other stuff at some point
 > 
 > `listtags`  - List tags of previously saved Slack messages
 
-## Environment Variables that must be set
+## Example Usage
+### Tagging a message
+When you tag a message with `sabot` response
+1. `@sabot` will also use the same response to ack it
+2. you will get a popup, only visable to you, asking to help categorize the message
+<img width="715" alt="CleanShot 2022-08-31 at 13 42 32@2x" src="https://user-images.githubusercontent.com/53237856/187759391-7c0b76c9-e344-4341-89d1-f3fb3d996c64.png">
+
+3. Second level categorization popup
+
+<img width="698" alt="CleanShot 2022-08-31 at 13 42 45@2x" src="https://user-images.githubusercontent.com/53237856/187759728-84b2b39c-e548-4148-8b28-1b4eb5d555f9.png">
+
+<img width="681" alt="CleanShot 2022-08-31 at 13 42 59@2x" src="https://user-images.githubusercontent.com/53237856/187760510-34ea1fbf-825b-4f33-8c9d-159f0a9c40bd.png">
+
+
+### Searching
+The easiest way to search is with `@sabot search <search terms>`
+
+This will search previously searched slack messages, Elastic Docs, and Elastic Blogs. 
+
+You can search any of those individually with the specific command `slack`, `docs`, or `blogs` followed by the search terms
+
+<img width="548" alt="CleanShot 2022-08-31 at 13 44 53@2x" src="https://user-images.githubusercontent.com/53237856/187760530-3ca02e06-249a-415a-8456-52c99c2f725e.png">
+
+<img width="838" alt="CleanShot 2022-08-31 at 13 45 23@2x" src="https://user-images.githubusercontent.com/53237856/187760567-498b3ebc-36dd-4534-875f-0eac8d259d70.png">
+
+<img width="820" alt="CleanShot 2022-08-31 at 13 45 36@2x" src="https://user-images.githubusercontent.com/53237856/187760604-c9559cfc-5ce9-4824-82d3-19f7a16f2e62.png">
+
+## Example video
+
+https://user-images.githubusercontent.com/53237856/187762232-60b35362-bbaa-4f5d-8d85-ea06ce8765de.mp4
+
+
+# Environment Variables that must be set
 
 - "sabot_cloud_id": <ess_cloud_id>
 - "sabot_cloud_es_user": "<ess_user>"
