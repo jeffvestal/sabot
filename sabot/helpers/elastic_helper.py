@@ -30,8 +30,13 @@ def esAppSearchConnect(url, apiKey):
 
     return app_search
 
+def generateVector(es, searchText):
+    '''
+    generate vector to use for search
+    '''
+    pass
 
-def esInsert(es, payload, index='sa_til-01'):
+def esInsert(es, payload, index='sabot-slack'):
     '''Insert message to ES
     payload :
     {
@@ -101,7 +106,7 @@ def esUpdateTag(es, tag, ts, index='sa_til-01', sub=False):
     logging.info('esUpdate complete: %s' % resp)
 
 
-def esUpdateDiscourseInfo(es, d_id, slug, ts, index='sa_til-01'):
+def esUpdateDiscourseInfo(es, d_id, slug, ts, index='sabot-slack'):
     '''
     add the id and post slug (path) to es
     id can be later used to update the discourse post
@@ -131,7 +136,7 @@ def esUpdateDiscourseInfo(es, d_id, slug, ts, index='sa_til-01'):
     resp = es.update_by_query(body=update, index=index)
 
 
-def listTags(es, index='sa_til-01'):
+def listTags(es, index='sabot-slack'):
     '''
     Provide a list of tags currently used with saved messages
     '''
@@ -510,7 +515,7 @@ def buildBlogsBlock(resp):
 
 
 
-def searchMessages(payload=False, es=False, searchTermRebuilt=False, index='sa_til-01'):
+def searchMessages(payload=False, es=False, searchTermRebuilt=False, index='sabot-slack'):
     '''
     Searching for saved messages
     '''
@@ -556,7 +561,7 @@ def searchMessages(payload=False, es=False, searchTermRebuilt=False, index='sa_t
     return results
 
 
-def searchMessagesAdvanced(body, es, index='sa_til-01'):
+def searchMessagesAdvanced(body, es, index='sabot-slack'):
     '''
     handle advanced search box
     '''
