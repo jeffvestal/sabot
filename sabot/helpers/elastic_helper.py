@@ -1,6 +1,8 @@
 from elasticsearch import Elasticsearch, helpers
+from elasticsearch.client import MlClient
 from elastic_enterprise_search import AppSearch
 
+from pprint import pprint
 
 
 # Now call API methods
@@ -34,7 +36,18 @@ def generateVector(es, searchText):
     '''
     generate vector to use for search
     '''
-    pass
+    logging.info('generating vector for search')
+    
+    nlp_model = 'sentence-transformers__all-minilm-l12-v2'
+    #docs = [{"text_field" : "how do you configure kubernetes"}]
+    docs = [{"text_field" : searchText}]
+
+    response = MlClient.infer_trained_model(es, model_id=nlp_model, docs=docs)
+    vector = response['inference_results'][0]['predicted_value']
+    logging.debug(vector)
+
+    return vector
+    
 
 def esInsert(es, payload, index='sabot-slack'):
     '''Insert message to ES
@@ -550,6 +563,58 @@ def searchMessages(payload=False, es=False, searchTermRebuilt=False, index='sabo
 
     logging.info('searching ES "%s"' % esBody)
     resp = es.search(index=index, body=esBody)
+
+    if resp['hits']['total']['value'] == 0:
+        #        results = buildNoResultsBlock()
+        results = buildAdvancedSearchBlock(addNoResults=True)
+    else:
+        urls = [hit['_source']['slack_link'] for hit in resp['hits']['hits']]
+        results = buildResultsBlock(urls)
+
+    return results
+
+def searchMessagesVectorVictor(payload=False, es=False, searchTermRebuilt=False, index='sabot-slack'):
+    '''
+    Searching for saved messages with vector victor
+    '''
+
+    logging.info('starting searchMessagesVectorVictor')
+    
+    if searchTermRebuilt:
+        logging.info('search term provided directly')
+    else:
+        logging.info('parsing out search term from payload')
+        logging.debug(payload)
+        searchTerms = payload['text'].split()[2:]
+        searchTermRebuilt = ' '.join(searchTerms)
+        if searchTermRebuilt.lower().strip() == 'advanced':
+            return 'advanced search coming soon'
+
+    vector = generateVector(es, searchTermRebuilt)
+
+    esBody = {
+        "knn": {
+            "field": "vector_victor.predicted_value",
+            "k": 10,
+            "num_candidates": 100,
+            "query_vector": vector
+        }
+    }
+
+#    knn: {
+#            "field": "vector_victor.predicted_value",
+#            "k": 10,
+#            "num_candidates": 100,
+#            "query_vector": vector
+#        }
+
+    
+    logging.info('searching ES "%s"' % esBody)
+    resp = es.search(index=index, body=esBody)
+#    logging.info('searching ES "%s"' % knn)
+#    resp = es.search(index=index, knn=knn)
+
+    pprint(resp)
 
     if resp['hits']['total']['value'] == 0:
         #        results = buildNoResultsBlock()

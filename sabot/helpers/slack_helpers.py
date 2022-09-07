@@ -426,7 +426,7 @@ def helpCommands():
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "`search [search terms]` - Search previously saved slack messages, docs, and blogs"
+				"text": "`search [search terms]` - Search previously saved slack messages, docs, and blogs (uses knn)"
 			}
 		},
    		{
@@ -458,8 +458,15 @@ def helpCommands():
 				"text": "`advanced` - Bring up the advanced search form"
 			}
 		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "`query [search terms]` - Uses traditions query:{} to Search previously saved slack messages, docs, and blogs"
+			}
+		},
 #	{
-#			"type": "section",
+#			"type": "section", 
 #			"text": {
 #				"type": "mrkdwn",
 #				"text": "`listtags` - List tags of previously saved Slack messages"

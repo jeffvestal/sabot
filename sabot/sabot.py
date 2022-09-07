@@ -13,7 +13,7 @@ from slack_sdk import WebClient
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
 
-from helpers.elastic_helper import esConnect, esInsert, esUpdateTag, listTags, searchMessages, searchMessagesAdvanced, buildAdvancedSearchBlock, esAppSearchConnect, searchDocs, searchBlogs
+from helpers.elastic_helper import esConnect, esInsert, esUpdateTag, listTags, searchMessages, searchMessagesAdvanced, buildAdvancedSearchBlock, esAppSearchConnect, searchDocs, searchBlogs, generateVector, searchMessagesVectorVictor
 from helpers.general import unix2ts
 from helpers.discourse import createTopic
 from helpers.slack_helpers import buildTagsForm, buildSecondaryTags, parseCommands, helpCommands, combineBlocks, parseAdvSearchOptions
@@ -125,7 +125,7 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
         text = listTags(es)
 
     elif command == 'search':
-        logging.info('searching all sources')
+        logging.info('searching all sources') 
         text = handle_advanced_submit(ack=ack, body=payload, say=say, logger=logger, quick_search=True)
         
     elif command == 'advanced':
@@ -144,6 +144,10 @@ def app_mention(say, client, ack, respond, payload, logger: logging.Logger):
     elif command == 'blogs':
         logging.info('Calling searchBlogs')
         text = searchBlogs(payload, rest, appsearch)
+
+    elif command == 'query':
+        logging.info('Calling generateVector')
+        text = handle_advanced_submit(ack=ack, body=payload, say=say, logger=logger, quick_search=True, vector=False)
 
     else:
         text = '''I don't recognize that command, below is the commands I know:\n\n%s''' % helpCommands()
@@ -208,7 +212,7 @@ def handle_advanced_search_enable(ack, body, say, logger):
 
 @elasticapm.capture_span()
 @app.action("advanced_submit")
-def handle_advanced_submit(ack, body, say, logger, quick_search=False):
+def handle_advanced_submit(ack, body, say, logger, quick_search=False, vector=True):
     '''
     Handle advanced search query
     '''
@@ -256,7 +260,10 @@ def handle_advanced_submit(ack, body, say, logger, quick_search=False):
     logging.debug('Advanced Results:')
     logging.debug(results)
     if slackSearch:
-        results['slack']['results'] = searchMessages(es=es, searchTermRebuilt=slackSearch )
+        if vector:
+            results['slack']['results'] = searchMessagesVectorVictor(es=es, searchTermRebuilt=slackSearch )
+        else:
+            results['slack']['results'] = searchMessages(es=es, searchTermRebuilt=slackSearch )
     if docsSearch:
         results['docs']['results'] = searchDocs(appSearch=appsearch, query = docsSearch)
     if blogsSearch:

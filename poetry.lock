@@ -145,7 +145,7 @@ develop = ["pytest", "pytest-cov", "pytest-mock", "pytest-asyncio", "pytest-http
 
 [[package]]
 name = "elasticsearch"
-version = "8.3.1"
+version = "8.4.1"
 description = "Python client for Elasticsearch"
 category = "main"
 optional = false
@@ -410,7 +410,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.0,<3.9"
-content-hash = "5e3cbf11322fffb0cf9447bc5cd160c5436fc12a78a5ea91fa59541a32b6dce8"
+content-hash = "1d9b8f0ebe00fd6561d6f4425bfe2306ecfa8092c4226319da11bc138ff61944"
 
 [metadata.files]
 aiohttp = []
