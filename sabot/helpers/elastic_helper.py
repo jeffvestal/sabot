@@ -71,7 +71,7 @@ def esInsert(es, payload, index='sabot-slack'):
     logging.info('Finished inserting message to ES')
 
 
-def esUpdateTag(es, tag, ts, index='sa_til-01', sub=False):
+def esUpdateTag(es, tag, ts, index='sabot-slack', sub=False):
     '''
     add a tag to es doc
     '''
